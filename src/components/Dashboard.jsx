@@ -68,7 +68,7 @@ function Dashboard({ user }) {
                   <td style={{ padding: '10px' }}>
                     <span className={`status-badge status-${req.status}`}>{req.status}</span>
                   </td>
-                  <td style={{ padding: '10px' }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                  <td style={{ padding: '10px' }}>{new Date(req.created_at + 'Z').toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

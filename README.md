@@ -49,6 +49,8 @@ npm run preview
 - ✅ Appointment scheduling
 - ✅ Workflow history tracking
 - ✅ Real-time status updates
+- ✅ In-app notification system with badge counts
+- ✅ Demo account credentials displayed on login page
 
 ## 🛠️ Technology Stack
 

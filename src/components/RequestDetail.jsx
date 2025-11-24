@@ -67,8 +67,8 @@ function RequestDetail({ user }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '15px' }}>
           <div><strong>Category:</strong> {request.category}</div>
           <div><strong>Priority:</strong> {request.priority}</div>
-          <div><strong>Created:</strong> {new Date(request.created_at).toLocaleString()}</div>
-          <div><strong>Updated:</strong> {new Date(request.updated_at).toLocaleString()}</div>
+          <div><strong>Created:</strong> {new Date(request.created_at + 'Z').toLocaleString()}</div>
+          <div><strong>Updated:</strong> {new Date(request.updated_at + 'Z').toLocaleString()}</div>
         </div>
 
         {actionMessage && (
@@ -128,7 +128,7 @@ function RequestDetail({ user }) {
                 <li key={idx} style={{ padding: '10px', borderLeft: '3px solid #007bff', marginBottom: '10px', background: '#f8f9fa' }}>
                   <strong>{log.step}</strong> - {log.details}
                   <br />
-                  <small>{new Date(log.created_at).toLocaleString()}</small>
+                  <small>{new Date(log.created_at + 'Z').toLocaleString()}</small>
                 </li>
               ))}
             </ul>

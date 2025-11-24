@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../utils/api';
 
 function Navbar({ user, onLogout }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api.get('/notifications/unread-count');
+      setUnreadCount(response.data.count);
+    } catch (error) {
+      // Ignore errors
+    }
+  };
+
   return (
     <nav style={{
       background: '#343a40',
@@ -18,6 +37,27 @@ function Navbar({ user, onLogout }) {
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
           <Link to="/requests" style={{ color: 'white', textDecoration: 'none' }}>Requests</Link>
+          <Link to="/notifications" style={{ color: 'white', textDecoration: 'none', position: 'relative' }}>
+            Notifications
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                background: '#dc3545',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
           {user.role === 'renter' && (
             <Link to="/requests/new" style={{ color: 'white', textDecoration: 'none' }}>New Request</Link>
           )}

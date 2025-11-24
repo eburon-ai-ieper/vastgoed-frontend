@@ -44,7 +44,7 @@ function MaintenanceRequests({ user }) {
                   <h3><Link to={`/requests/${req.id}`}>{req.title}</Link></h3>
                   <p>{req.description}</p>
                   <p><strong>Category:</strong> {req.category} | <strong>Priority:</strong> {req.priority}</p>
-                  <p><strong>Created:</strong> {new Date(req.created_at).toLocaleString()}</p>
+                  <p><strong>Created:</strong> {new Date(req.created_at + 'Z').toLocaleString()}</p>
                 </div>
                 <div>
                   <span className={`status-badge status-${req.status}`}>{req.status}</span>

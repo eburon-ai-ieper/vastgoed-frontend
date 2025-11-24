@@ -7,6 +7,7 @@ import CreateRequest from './components/CreateRequest';
 import RequestDetail from './components/RequestDetail';
 import ContractorSelection from './components/ContractorSelection';
 import ScheduleAppointment from './components/ScheduleAppointment';
+import Notifications from './components/Notifications';
 import Navbar from './components/Navbar';
 import { getAuthToken, setAuthToken, removeAuthToken } from './utils/auth';
 
@@ -61,6 +62,7 @@ function App() {
           <Route path="/requests/:id" element={<RequestDetail user={user} />} />
           <Route path="/requests/:id/select-contractor" element={<ContractorSelection user={user} />} />
           <Route path="/requests/:id/schedule" element={<ScheduleAppointment user={user} />} />
+          <Route path="/notifications" element={<Notifications user={user} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
