@@ -35,22 +35,28 @@ npm run preview
 
 ## 👥 User Roles
 
-- **Renter**: Creates maintenance requests
-- **Broker**: Manages requests, schedules appointments
-- **Owner**: Selects contractors for their properties
-- **Contractor**: Receives assignments and appointment notifications
+- **Renter**: Creates maintenance requests with available times (required field)
+- **Broker**: Views and manages requests (cannot schedule appointments)
+- **Owner**: Selects contractors for their properties via email link
+- **Contractor**: Receives assignments and schedules appointments via email link
 
 ## 📋 Features
 
 - ✅ User authentication (JWT)
 - ✅ Role-based access control
-- ✅ Maintenance request creation and management
-- ✅ Contractor selection
-- ✅ Appointment scheduling
-- ✅ Workflow history tracking
-- ✅ Real-time status updates
+- ✅ Maintenance request creation with flexible availability options:
+  - Specific date/time ranges
+  - Weekday availability (with time ranges)
+  - Weekend availability (with time ranges)
+  - **Available times are required** for all requests
+- ✅ Token-based contractor selection (public link, no login required)
+- ✅ Token-based appointment scheduling (public link, no login required)
+- ✅ Workflow history tracking with proper date formatting
+- ✅ Real-time status updates with color-coded messages (orange for pending, green for scheduled)
 - ✅ In-app notification system with badge counts
 - ✅ Demo account credentials displayed on login page
+- ✅ Request details show renter name, property address, and available times
+- ✅ Form submission protection (prevents multiple submissions)
 
 ## 🛠️ Technology Stack
 

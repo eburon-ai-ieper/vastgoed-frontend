@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
-function ScheduleAppointment() {
+function SelectContractor() {
   const { token } = useParams();
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);
-  const [formData, setFormData] = useState({
-    scheduled_date: '',
-    scheduled_time: '',
-    notes: ''
-  });
+  const [contractors, setContractors] = useState([]);
+  const [selectedContractor, setSelectedContractor] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -22,8 +19,9 @@ function ScheduleAppointment() {
 
   const fetchData = async () => {
     try {
-      const response = await api.get(`/maintenance/schedule-appointment/${token}`);
+      const response = await api.get(`/maintenance/select-contractor/${token}`);
       setRequest(response.data.request);
+      setContractors(response.data.contractors);
       setLoading(false);
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to load request');
@@ -33,26 +31,22 @@ function ScheduleAppointment() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.scheduled_date || !formData.scheduled_time) {
-      setError('Please select both date and time');
+    if (!selectedContractor) {
+      setError('Please select a contractor');
       return;
     }
-
-    // Combine date and time
-    const scheduledDateTime = `${formData.scheduled_date}T${formData.scheduled_time}:00`;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await api.post(`/maintenance/schedule-appointment/${token}`, {
-        scheduled_date: scheduledDateTime,
-        notes: formData.notes
+      const response = await api.post(`/maintenance/select-contractor/${token}`, {
+        contractor_id: selectedContractor
       });
       setSuccess(true);
       setSubmitting(false);
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to schedule appointment');
+      setError(error.response?.data?.error || 'Failed to select contractor');
       setSubmitting(false);
     }
   };
@@ -82,8 +76,8 @@ function ScheduleAppointment() {
     return (
       <div className="container">
         <div className="card" style={{ textAlign: 'center' }}>
-          <h2 style={{ color: '#28a745' }}>✓ Appointment Scheduled Successfully!</h2>
-          <p>All parties (renter, owner, broker, and contractor) have been notified of the scheduled appointment.</p>
+          <h2 style={{ color: '#28a745' }}>✓ Contractor Selected Successfully!</h2>
+          <p>The contractor has been notified and will receive an email with a link to schedule the appointment.</p>
           <button 
             onClick={() => navigate('/')} 
             className="btn btn-primary"
@@ -96,12 +90,9 @@ function ScheduleAppointment() {
     );
   }
 
-  // Get minimum date (today)
-  const today = new Date().toISOString().split('T')[0];
-
   return (
     <div className="container">
-      <h1>Schedule Appointment</h1>
+      <h1>Select Contractor</h1>
       <div className="card">
         {request && (
           <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '5px' }}>
@@ -110,13 +101,10 @@ function ScheduleAppointment() {
             <p><strong>Description:</strong> {request.description}</p>
             <p><strong>Category:</strong> {request.category}</p>
             <p><strong>Priority:</strong> {request.priority}</p>
-            {request.renter_name && (
-              <p><strong>Renter:</strong> {request.renter_name}</p>
-            )}
             {request.renter_available_times && request.renter_available_times.length > 0 && (
-              <div style={{ marginTop: '10px', padding: '10px', background: '#d4edda', borderRadius: '5px' }}>
-                <strong>📅 Renter Available Times:</strong>
-                <ul style={{ marginTop: '5px' }}>
+              <div style={{ marginTop: '10px' }}>
+                <strong>Renter Available Times:</strong>
+                <ul>
                   {request.renter_available_times.map((timeSlot, idx) => {
                     let displayText = '';
                     if (typeof timeSlot === 'string') {
@@ -130,15 +118,10 @@ function ScheduleAppointment() {
                       displayText = `All weekdays (Monday-Friday) from ${timeSlot.timeFrom} to ${timeSlot.timeTo || timeSlot.timeFrom}`;
                     }
                     return (
-                      <li key={idx} style={{ marginBottom: '5px' }}>
-                        {displayText}
-                      </li>
+                      <li key={idx}>{displayText}</li>
                     );
                   })}
                 </ul>
-                <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                  The renter has indicated these times work for them. Please try to schedule within these times if possible.
-                </p>
               </div>
             )}
           </div>
@@ -146,37 +129,27 @@ function ScheduleAppointment() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Appointment Date</label>
-            <input
-              type="date"
-              required
-              disabled={submitting}
-              min={today}
-              value={formData.scheduled_date}
-              onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Appointment Time</label>
-            <input
-              type="time"
-              required
-              disabled={submitting}
-              value={formData.scheduled_time}
-              onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Notes (Optional)</label>
-            <textarea
-              disabled={submitting}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any additional notes or instructions..."
-              rows="4"
-            />
+            <label>Select Contractor</label>
+            {contractors.length === 0 ? (
+              <p style={{ color: '#dc3545' }}>No contractors available</p>
+            ) : (
+              <select
+                required
+                value={selectedContractor}
+                onChange={(e) => setSelectedContractor(e.target.value)}
+                style={{ width: '100%', padding: '10px' }}
+              >
+                <option value="">Choose a contractor...</option>
+                {contractors.map((contractor) => (
+                  <option key={contractor.user_id} value={contractor.user_id}>
+                    {contractor.company_name} - {contractor.name} 
+                    {contractor.rating && ` (Rating: ${contractor.rating})`}
+                    {contractor.specialties && contractor.specialties.length > 0 && 
+                      ` - Specialties: ${contractor.specialties.join(', ')}`}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {error && (
@@ -186,9 +159,9 @@ function ScheduleAppointment() {
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={submitting}
+            disabled={submitting || contractors.length === 0}
           >
-            {submitting ? 'Scheduling...' : 'Schedule Appointment'}
+            {submitting ? 'Selecting...' : 'Select Contractor'}
           </button>
         </form>
       </div>
@@ -196,4 +169,5 @@ function ScheduleAppointment() {
   );
 }
 
-export default ScheduleAppointment;
+export default SelectContractor;
+
