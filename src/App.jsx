@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard';
 import MaintenanceRequests from './components/MaintenanceRequests';
 import CreateRequest from './components/CreateRequest';
 import RequestDetail from './components/RequestDetail';
-import ContractorSelection from './components/ContractorSelection';
+import SelectContractor from './components/SelectContractor';
 import ScheduleAppointment from './components/ScheduleAppointment';
 import Notifications from './components/Notifications';
 import Navbar from './components/Navbar';
@@ -47,22 +47,27 @@ function App() {
     return <div className="container">Loading...</div>;
   }
 
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
-
   return (
     <div>
-      <Navbar user={user} onLogout={handleLogout} />
+      {user && <Navbar user={user} onLogout={handleLogout} />}
       <div className="container">
         <Routes>
-          <Route path="/" element={<Dashboard user={user} />} />
-          <Route path="/requests" element={<MaintenanceRequests user={user} />} />
-          <Route path="/requests/new" element={<CreateRequest user={user} />} />
-          <Route path="/requests/:id" element={<RequestDetail user={user} />} />
-          <Route path="/requests/:id/select-contractor" element={<ContractorSelection user={user} />} />
-          <Route path="/requests/:id/schedule" element={<ScheduleAppointment user={user} />} />
-          <Route path="/notifications" element={<Notifications user={user} />} />
+          {/* Public routes (no auth required) */}
+          <Route path="/select-contractor/:token" element={<SelectContractor />} />
+          <Route path="/schedule-appointment/:token" element={<ScheduleAppointment />} />
+          
+          {/* Protected routes (require auth) */}
+          {user ? (
+            <>
+              <Route path="/" element={<Dashboard user={user} />} />
+              <Route path="/requests" element={<MaintenanceRequests user={user} />} />
+              <Route path="/requests/new" element={<CreateRequest user={user} />} />
+              <Route path="/requests/:id" element={<RequestDetail user={user} />} />
+              <Route path="/notifications" element={<Notifications user={user} />} />
+            </>
+          ) : (
+            <Route path="*" element={<Login onLogin={handleLogin} />} />
+          )}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

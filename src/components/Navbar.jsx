@@ -37,22 +37,25 @@ function Navbar({ user, onLogout }) {
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
           <Link to="/requests" style={{ color: 'white', textDecoration: 'none' }}>Requests</Link>
-          <Link to="/notifications" style={{ color: 'white', textDecoration: 'none', position: 'relative' }}>
+          <Link to="/notifications" style={{ color: 'white', textDecoration: 'none', position: 'relative', display: 'inline-block', paddingRight: unreadCount > 0 ? '25px' : '0' }}>
             Notifications
             {unreadCount > 0 && (
               <span style={{
                 position: 'absolute',
-                top: '-8px',
-                right: '-8px',
+                top: '-5px',
+                right: '0',
                 background: '#dc3545',
                 color: 'white',
                 borderRadius: '50%',
-                width: '20px',
+                minWidth: '20px',
                 height: '20px',
-                fontSize: '12px',
+                fontSize: '11px',
+                fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                padding: unreadCount > 9 ? '0 6px' : '0',
+                lineHeight: '20px'
               }}>
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>

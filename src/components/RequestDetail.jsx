@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 
 function RequestDetail({ user }) {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,9 +14,14 @@ function RequestDetail({ user }) {
   const fetchRequest = async () => {
     try {
       const response = await api.get(`/maintenance/${id}`);
-      setRequest(response.data);
+      if (response.data) {
+        setRequest(response.data);
+      } else {
+        console.error('No data in response:', response);
+      }
     } catch (error) {
       console.error('Error fetching request:', error);
+      console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -30,8 +34,8 @@ function RequestDetail({ user }) {
   if (!request) return <div>Request not found</div>;
 
   const canSelectContractor = user.role === 'owner' && request.status === 'notified_owner';
-  const canSchedule = user.role === 'broker' && request.status === 'contractor_selected';
   const canNotifyOwner = user.role === 'broker' && request.status === 'pending';
+  const canScheduleAppointment = user.role === 'contractor' && request.status === 'contractor_selected' && request.contractor_id === user.id;
 
   const handleNotifyOwner = async () => {
     setActionLoading(true);
@@ -63,12 +67,55 @@ function RequestDetail({ user }) {
           <strong>Description:</strong>
           <p>{request.description}</p>
         </div>
+
+        {/* Renter and Property Information - Important for contractors */}
+        {(user.role === 'contractor' || user.role === 'broker' || user.role === 'owner') && (
+          <div style={{ marginBottom: '15px', padding: '15px', background: '#e7f3ff', border: '1px solid #007bff', borderRadius: '4px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#007bff' }}>📍 Location & Contact Information</h3>
+            {request.property && request.property.address ? (
+              <div style={{ marginBottom: '10px' }}>
+                <strong>Property Address:</strong> {request.property.address}
+              </div>
+            ) : (
+              <div style={{ marginBottom: '10px', color: '#856404' }}>
+                <strong>Property Address:</strong> <em>Address information not available</em>
+              </div>
+            )}
+            {request.renter && request.renter.name ? (
+              <div>
+                <strong>Renter:</strong> {request.renter.name}
+                {request.renter.email && ` (${request.renter.email})`}
+                {request.renter.phone && ` - Phone: ${request.renter.phone}`}
+              </div>
+            ) : (
+              <div style={{ color: '#856404' }}>
+                <strong>Renter:</strong> <em>Contact information not available</em>
+              </div>
+            )}
+          </div>
+        )}
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '15px' }}>
           <div><strong>Category:</strong> {request.category}</div>
           <div><strong>Priority:</strong> {request.priority}</div>
           <div><strong>Created:</strong> {new Date(request.created_at + 'Z').toLocaleString()}</div>
           <div><strong>Updated:</strong> {new Date(request.updated_at + 'Z').toLocaleString()}</div>
+          {request.schedule && (
+            <>
+              <div><strong>Scheduled Date:</strong> {
+                (() => {
+                  const dateStr = request.schedule.scheduled_date;
+                  // If date string doesn't have timezone info (Z, +, or - at position 10+), parse as local time
+                  const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || (dateStr.lastIndexOf('-') > 10);
+                  const date = hasTimezone ? new Date(dateStr) : new Date(dateStr.replace('T', ' '));
+                  return date.toLocaleString();
+                })()
+              }</div>
+              {request.schedule.notes && (
+                <div><strong>Notes:</strong> {request.schedule.notes}</div>
+              )}
+            </>
+          )}
         </div>
 
         {actionMessage && (
@@ -96,26 +143,86 @@ function RequestDetail({ user }) {
           )}
 
           {canSelectContractor && (
-            <Link to={`/requests/${id}/select-contractor`} className="btn btn-primary" style={{ marginLeft: '10px' }}>
+            <Link 
+              to={request.selection_token ? `/select-contractor/${request.selection_token}` : '#'} 
+              className="btn btn-primary" 
+              style={{ marginLeft: '10px' }}
+            >
               Select Contractor
             </Link>
           )}
 
-          {canSchedule && (
-            <Link to={`/requests/${id}/schedule`} className="btn btn-primary" style={{ marginLeft: '10px' }}>
+          {canScheduleAppointment && request.selection_token && (
+            <Link 
+              to={`/schedule-appointment/${request.selection_token}`} 
+              className="btn btn-primary" 
+              style={{ marginLeft: '10px' }}
+            >
               Schedule Appointment
             </Link>
           )}
 
-          {!canNotifyOwner && !canSelectContractor && !canSchedule && (
-            <div style={{ padding: '10px', background: '#e9ecef', borderRadius: '4px', color: '#6c757d' }}>
+          {!canNotifyOwner && !canSelectContractor && !canScheduleAppointment && (
+            <div style={{ 
+              padding: '10px', 
+              borderRadius: '4px',
+              ...(request.status === 'scheduled' || request.status === 'completed' ? {
+                background: '#d4edda',
+                border: '1px solid #28a745',
+                color: '#155724'
+              } : request.status === 'in_progress' ? {
+                background: '#d1ecf1',
+                border: '1px solid #17a2b8',
+                color: '#0c5460'
+              } : {
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                color: '#856404'
+              })
+            }}>
               {user.role === 'broker' && request.status === 'pending' && 'Click "Notify Owner" to proceed'}
               {user.role === 'broker' && request.status === 'notified_owner' && 'Waiting for owner to select a contractor...'}
-              {user.role === 'broker' && request.status === 'contractor_selected' && 'Click "Schedule Appointment" to proceed'}
+              {user.role === 'broker' && request.status === 'contractor_selected' && 'Waiting for contractor to schedule the appointment. The contractor received an email with a link to schedule.'}
+              {user.role === 'broker' && request.status === 'scheduled' && request.schedule && (() => {
+                const dateStr = request.schedule.scheduled_date;
+                const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || (dateStr.lastIndexOf('-') > 10);
+                const date = hasTimezone ? new Date(dateStr) : new Date(dateStr.replace('T', ' '));
+                return `✓ Appointment scheduled for: ${date.toLocaleString()}`;
+              })()}
+              {user.role === 'broker' && request.status === 'in_progress' && 'Appointment is in progress.'}
+              {user.role === 'broker' && request.status === 'completed' && '✓ Request has been completed.'}
               {user.role === 'owner' && request.status === 'pending' && 'Waiting for broker to notify you...'}
               {user.role === 'owner' && request.status === 'notified_owner' && 'Click "Select Contractor" to proceed'}
-              {user.role === 'renter' && 'Your request is being processed. You will be notified when an appointment is scheduled.'}
-              {user.role === 'contractor' && 'You have been assigned to this request. Waiting for appointment scheduling...'}
+              {user.role === 'owner' && request.status === 'contractor_selected' && 'Waiting for contractor to schedule the appointment. The contractor received an email with a link to schedule.'}
+              {user.role === 'owner' && request.status === 'scheduled' && request.schedule && (() => {
+                const dateStr = request.schedule.scheduled_date;
+                const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || (dateStr.lastIndexOf('-') > 10);
+                const date = hasTimezone ? new Date(dateStr) : new Date(dateStr.replace('T', ' '));
+                return `✓ Appointment scheduled for: ${date.toLocaleString()}`;
+              })()}
+              {user.role === 'owner' && request.status === 'in_progress' && 'Appointment is in progress.'}
+              {user.role === 'owner' && request.status === 'completed' && '✓ Request has been completed.'}
+              {user.role === 'renter' && request.status === 'pending' && 'Your request has been submitted. Waiting for broker to process...'}
+              {user.role === 'renter' && request.status === 'notified_owner' && 'Broker has notified the owner. Waiting for owner to select a contractor...'}
+              {user.role === 'renter' && request.status === 'contractor_selected' && 'Waiting for contractor to schedule the appointment. The contractor received an email with a link to schedule.'}
+              {user.role === 'renter' && request.status === 'scheduled' && request.schedule && (() => {
+                const dateStr = request.schedule.scheduled_date;
+                const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || (dateStr.lastIndexOf('-') > 10);
+                const date = hasTimezone ? new Date(dateStr) : new Date(dateStr.replace('T', ' '));
+                return `✓ Appointment scheduled for: ${date.toLocaleString()}`;
+              })()}
+              {user.role === 'renter' && request.status === 'in_progress' && 'Appointment is in progress.'}
+              {user.role === 'renter' && request.status === 'completed' && '✓ Request has been completed.'}
+              {user.role === 'contractor' && request.status === 'scheduled' && request.schedule && (() => {
+                const dateStr = request.schedule.scheduled_date;
+                const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || (dateStr.lastIndexOf('-') > 10);
+                const date = hasTimezone ? new Date(dateStr) : new Date(dateStr.replace('T', ' '));
+                return `✓ Appointment scheduled for: ${date.toLocaleString()}`;
+              })()}
+              {user.role === 'contractor' && request.status === 'in_progress' && 'Appointment is in progress.'}
+              {user.role === 'contractor' && request.status === 'completed' && '✓ Request has been completed.'}
+              {user.role === 'contractor' && request.status === 'contractor_selected' && 'Click "Schedule Appointment" to schedule the appointment.'}
+              {user.role === 'contractor' && request.status !== 'contractor_selected' && request.status !== 'scheduled' && request.status !== 'in_progress' && request.status !== 'completed' && 'You have been assigned to this request. Waiting for appointment scheduling...'}
             </div>
           )}
         </div>
@@ -124,13 +231,17 @@ function RequestDetail({ user }) {
           <div style={{ marginTop: '30px' }}>
             <h3>Workflow History</h3>
             <ul style={{ listStyle: 'none', padding: 0 }}>
-              {request.workflow_logs.map((log, idx) => (
-                <li key={idx} style={{ padding: '10px', borderLeft: '3px solid #007bff', marginBottom: '10px', background: '#f8f9fa' }}>
-                  <strong>{log.step}</strong> - {log.details}
-                  <br />
-                  <small>{new Date(log.created_at + 'Z').toLocaleString()}</small>
-                </li>
-              ))}
+              {request.workflow_logs.map((log, idx) => {
+                // Format date strings in details (replace T with space in ISO date-time strings)
+                const formattedDetails = log.details ? log.details.replace(/(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/g, '$1 $2') : log.details;
+                return (
+                  <li key={idx} style={{ padding: '10px', borderLeft: '3px solid #007bff', marginBottom: '10px', background: '#f8f9fa' }}>
+                    <strong>{log.step}</strong> - {formattedDetails}
+                    <br />
+                    <small>{new Date(log.created_at + 'Z').toLocaleString()}</small>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
