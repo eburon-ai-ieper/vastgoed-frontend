@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { getAuthHeader } from './auth';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://vastgoed.eburon.xyz/api';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_BACKEND_URL || API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
